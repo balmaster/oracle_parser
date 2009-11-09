@@ -1,1232 +1,1238 @@
 grammar oracle10;
 
 options {
-	language=Java;
-	k=*;
-	backtrack=true;
-	memoize=true;
 	output=AST;
+	ASTLabelType=CommonTree;
+	backtrack=false;
 }
 
 start_rule
-	:	select EOF
+	:	select
 	;
 
-
-select	
-	:	subquery  SEMICOLON
+select    
+	:	subquery  
 	;
 
 subquery
-	:	subquery_factoring_clause SELECT (hint)? ((ALL|UNIQUE|DISTINCT))? select_list 
-	FROM ((join_clause|(LB join_clause RB)|((table_reference)(COMMA table_reference)*))+
-	(where_clause)? (hierarchical_query_clause)? (group_by_clause)?
-	(HAVING condition)? (model_clause)?
-	(((UNION (ALL)?)|INTERSECT|MINUS)) LB subquery RB )? (order_by_clause)?
+	:	scalar_subquery (order_by_clause)?
+	;
+
+scalar_subquery
+	:	/*subquery_factoring_clause*/ SELECT /*(hint)?*/ (ALL|UNIQUE|DISTINCT)? select_list
+		FROM
+		scalar_subquery1
+		where_clause?
+		hierarchical_query_clause?
+		group_by_clause?
+		(HAVING condition)?
+		//model_clause?
+		((UNION ALL?|INTERSECT|MINUS) LB subquery RB)?
 	;
 
 fragment
+scalar_subquery1
+	:	table_reference (COMMA table_reference)*
+	|	(join_clause) => join_clause
+	;
+
+/*
+fragment
 hint
-	:
-	;
-	
+    :
+    ;
+*/    
+
 subquery_factoring_clause
-	:	WITH (query_name AS LB subquery RB)(COMMA query_name AS LB subquery RB)*	
+	:	WITH (query_name AS LB subquery RB)(COMMA query_name AS LB subquery RB)*    
 	;
-	
+    
 fragment
 query_name
 	:	IDENT
-	;	
-	
+	;    
+    
 select_list
-	:	((select_list1 (COMMA select_list1)* )
-	| ASTERISK)
+	:	select_list1 (COMMA select_list1)*
 	;
 
-fragment	
+fragment    
 select_list1
-	:	(((query_name|((schema DOT)? IDENT)) DOT ASTERISK)
-	|	(expr ((AS)? c_alias)?))
+	:	(obj_path_expression DOT)? ASTERISK
+	|	expr ((AS)? c_alias)?
 	;
-	
-fragment	
+    
+fragment    
 schema
 	:	IDENT
 	;
-	
+    
 fragment
 c_alias
 	:	IDENT
-	;					
-	
+	;                    
+    
 table_reference
-	:	ONLY LB query_table_expression RB flashback_query_clause? t_alias?
-	|	query_table_expression flashback_query_clause? t_alias?	
+	:	query_table_expression /*flashback_query_clause?*/ t_alias?
 	;
-	
-fragment	
+    
+fragment    
 t_alias
 	:	IDENT
 	;
 
-	
+    
 flashback_query_clause
 	:	(VERSIONS BETWEEN (SCN| TIMESTAMP) (expr| MINVALUE) AND (expr|MAXVALUE))? AS OF (SCN|TIMESTAMP) expr
 	;
 
 query_table_expression
-	:	query_name
-	|	(schema DOT)? query_table_expression1
+	:	(schema DOT)? IDENT (AT_SIGN dblink)?
 	|	LB subquery subquery_restriction_clause? RB
-	|	table_collection_expression
-	;	 
-	
-fragment	 	
-query_table_expression1
-	:	TABLE (query_table_expression2 | AT_SIGN dblink)?
-	|	VIEW AT_SIGN dblink
-	|	MATERIALIZED VIEW AT_SIGN dblink
-	;
-	
-fragment	
+	//|    table_collection_expression
+	;    
+    
+//fragment         
+//query_table_expression1
+//    :    IDENT query_table_expression2?
+//    ;
+    
+fragment    
 dblink
-	: 	IDENT
-	;	
-	
-query_table_expression2
-	:	(( PARTITION LB partition RB)|( SUBPARTITION LB subpartition RB))? sample_clause?
-	|	sample_clause
-	|	AT_SIGN dblink
-	;
-	
-fragment	
+	:	IDENT
+	;    
+    
+//query_table_expression2
+//    :    (( PARTITION LB partition RB)|( SUBPARTITION LB subpartition RB))? sample_clause?
+//    |    sample_clause
+//    ;
+    
+fragment    
 partition
 	:	IDENT
 	;
-	
-fragment	
+    
+fragment    
 subpartition
-	:	IDENT
-	;		
-	
-fragment	
+    :    IDENT
+    ;        
+    
+fragment    
 sample_clause
-	:	SAMPLE BLOCK? LB sample_percent RB ( SEED LB seed_value RB)?	
+	:	SAMPLE BLOCK? LB sample_percent RB ( SEED LB seed_value RB)?    
 	;
-	
-fragment	
+    
+fragment    
 sample_percent
 	:	integer
-	;	
-	
-fragment	
+	;    
+    
+fragment    
 seed_value
-	:	integer
-	;	
-	
+    :    integer
+    ;    
+    
 subquery_restriction_clause
-	:	WITH (( READ ONLY)|( CHECK OPTION ( CONSTRAINT constraint)? ))	
-	;
-	
-fragment	
-constraint
-	:	condition
-	;	
-	
+    :    WITH (( READ ONLY)|( CHECK OPTION ( CONSTRAINT condition)? ))    
+    ;
+    
+  
 table_collection_expression
-	:	TABLE LB collection_expression 	RB (LB PLUS RB)+
-	;
+    :    TABLE LB collection_expression     RB (LB PLUS RB)+
+    ;
 
 collection_expression
-	:	IDENT
-	;
+    :    IDENT
+    ;
 
-fragment
+
 join_clause
-	:	table_reference	(inner_cross_join_clause|outer_join_clause)*
-	;
+    :    table_reference (inner_cross_join_clause|outer_join_clause)*
+    ;
 
-fragment
+
 inner_cross_join_clause
-	:	INNER? JOIN table_reference (( ON condition)|( USING LB inner_cross_join_clause1(COMMA inner_cross_join_clause1)* RB))	
+	:	INNER? JOIN table_reference (( ON condition)|( USING LB column(COMMA column)* RB))    
 	|	( CROSS|( NATURAL INNER?)) JOIN table_reference
 	;
-	
-fragment		
+    
+        
 column
-	:	IDENT
+	:    IDENT
 	;
-
-fragment
-inner_cross_join_clause1
-	:	column
-	;
-
 
 outer_join_clause
-	:	query_partition_clause? NATURAL? outer_join_type JOIN 
-	table_reference query_partition_clause?	((ON condition)|(USING inner_cross_join_clause1(COMMA inner_cross_join_clause1)*))?		 	
-	;
-	
+    :    query_partition_clause? NATURAL? outer_join_type JOIN
+    table_reference /*query_partition_clause?*/    ((ON condition)| (USING LB column(COMMA column)* RB))?             
+    ;
+    
 query_partition_clause
-	:	PARTITION BY (query_partition_clause1|(LB query_partition_clause1 RB))	
-	;
-	
-fragment	
+    :    PARTITION BY (query_partition_clause1|(LB query_partition_clause1 RB))    
+    ;
+    
+fragment    
 query_partition_clause1
-	:	column(COMMA column)*
-	;	
-	
+    :    column(COMMA column)*
+    ;    
+    
 outer_join_type
-	:	( FULL | LEFT | RIGHT ) OUTER?
-	;
+    :    ( FULL | LEFT | RIGHT ) OUTER?
+    ;
 
 where_clause
-	:	WHERE condition
-	;
-	
-hierarchical_query_clause 
-	:	( START WITH condition )? CONNECT BY NOCYCLE? condition
-	;
-	
+    :    WHERE condition
+    ;
+    
+hierarchical_query_clause
+    :    ( START WITH condition )? CONNECT BY NOCYCLE? condition
+    ;
+    
 group_by_clause
-	:	GROUP BY group_by_clause(COMMA group_by_clause)* (HAVING condition)?
-	;
-		
+    :    GROUP BY group_by_clause1(COMMA group_by_clause1)*
+    ;
+         
 fragment
-group_by_clause1			
-	:	expr
-	|	rollup_cube_clause
-	|	grouping_sets_clause
-	;
-	
+group_by_clause1            
+    :    expr
+    |    rollup_cube_clause
+    |    grouping_sets_clause
+    ;
+    
 rollup_cube_clause
-	:	( ROLLUP | CUBE ) LB grouping_expression_list RB	
-	;
-	
+    :    ( ROLLUP | CUBE ) LB grouping_expression_list RB    
+    ;
+    
 grouping_sets_clause
-	:	GROUPING SETS LB grouping_sets_clause1 (COMMA grouping_sets_clause)* RB	
-	;
-	
-fragment	
+    :    GROUPING SETS LB grouping_sets_clause1 (COMMA grouping_sets_clause)* RB    
+    ;
+    
+fragment    
 grouping_sets_clause1
-	: 	rollup_cube_clause
-	|	grouping_expression_list
-	;
-	
+    :     rollup_cube_clause
+    |    grouping_expression_list
+    ;
+    
 grouping_expression_list
-	:	expression_list(COMMA expression_list)*
-	;
-	
+    :    expression_list(COMMA expression_list)*
+    ;
+    
 expression_list
-	:	expr
-	|	LB expr RB
-	;
-	
+    :    expr
+    ;
+    
+/*    
 model_clause
-	:	MODEL cell_reference_options? return_rows_clause? reference_model* main_model
-	;
-	
+    :    MODEL cell_reference_options? return_rows_clause? reference_model* main_model
+    ;
+*/
+    
 cell_reference_options
-	:	(( IGNORE | KEEP ) NAW )? (UNIQUE ( DIMENSION |( SINGLE REFERENCE)))?	
-	;
-	
+    :    (( IGNORE | KEEP ) NAW )? (UNIQUE ( DIMENSION |( SINGLE REFERENCE)))?    
+    ;
+    
 return_rows_clause
-	:	RETURN ( UPDATED|ALL) ROWS
-	;
-	
+    :    RETURN ( UPDATED|ALL) ROWS
+    ;
+    
+    /*
 reference_model
-	:	REFERENCE reference_model_name ON LB subquery RB model_column_clauses cell_reference_options?
-	;
+    :    REFERENCE reference_model_name ON LB subquery RB model_column_clauses cell_reference_options?
+    ;
+    */
 
 fragment
 reference_model_name
-	:	IDENT
-	;	
-	
+    :    IDENT
+    ;    
+
+/*    
 main_model
-	:	( MAIN main_model_name)? model_column_clauses cell_reference_options? model_rules_clause
-	;
-	
-fragment	
+    :    ( MAIN main_model_name)? model_column_clauses cell_reference_options? model_rules_clause
+    ;
+*/
+    
+fragment    
 main_model_name
-	:	IDENT
-	;	
-	
+    :    IDENT
+    ;    
+    
 model_column_clauses
-	:	(query_partition_clause c_alias?)? DIMENSION BY LB model_column(COMMA model_column)*RB 
-	MEASURES LB model_column(COMMA model_column)* RB
-	;
-	
+    :    (query_partition_clause c_alias?)? DIMENSION BY LB model_column(COMMA model_column)*RB
+    MEASURES LB model_column(COMMA model_column)* RB
+    ;
+    
 model_column
-	:	expr (AS? c_alias)?	
-	;
-	
+    :    expr (AS? c_alias)?    
+    ;
+    
 model_rules_clause
-	:	( RULES (( UPDATE|( UPSERT ALL?)))?)? (( AUTOMATIC| SECUENTIAL) ORDER)?
-	( ITERATE)? LB number RB ( UNTIL LB condition RB)?
-	LB model_rules_clause1(COMMA model_rules_clause1)* RB					 	
-	;
-	
-fragment	
+    :    ( RULES (( UPDATE|( UPSERT ALL?)))?)? (( AUTOMATIC| SECUENTIAL) ORDER)?
+    ( ITERATE)? LB number RB ( UNTIL LB condition RB)?
+    LB model_rules_clause1(COMMA model_rules_clause1)* RB                         
+    ;
+    
+fragment    
 model_rules_clause1
-	:	((UPDATE|(UPSERT ALL?)))? cell_assignment order_by_clause? '=' expr
-	;
-	
+    :    ((UPDATE|(UPSERT ALL?)))? cell_assignment order_by_clause? '=' expr
+    ;
+    
 cell_assignment
-	:	measure_column LSB ((cell_assignment1(COMMA cell_assignment1)*)|multi_column_for_loop) RSB	
-	;
-	
+    :    measure_column LSB ((cell_assignment1(COMMA cell_assignment1)*)|multi_column_for_loop) RSB    
+    ;
+    
 measure_column
-	:	IDENT
-	;	
-	
-fragment	
+    :    IDENT
+    ;    
+    
+fragment    
 cell_assignment1
-	:	condition
-	|	expr
-	|	single_column_for_loop
-	;
-	
+    :    expr
+    |    single_column_for_loop
+    ;
+    
 single_column_for_loop
-	:	FOR dimension_column single_column_for_loop1		
-	;
-	
+    :    FOR dimension_column single_column_for_loop1        
+    ;
+    
 dimension_column
-	:	IDENT
-	;	
-	
-fragment	
+    :    IDENT
+    ;    
+    
+fragment    
 single_column_for_loop1
-	:	IN LB ((literal(COMMA literal)*)|subquery)  RB	
-	|	( LIKE pattern)? FROM literal TO literal ( INCREMENT| DECREMENT) literal
-	;
-	
-fragment	
+    :    IN LB ((literal(COMMA literal)*)|subquery)  RB    
+    |    ( LIKE pattern)? FROM literal TO literal ( INCREMENT| DECREMENT) literal
+    ;
+    
+fragment    
 pattern
-	:	expr
-	;	
-	
+    :    expr
+    ;    
+    
 multi_column_for_loop
-	:	FOR dimension_column(COMMA dimension_column)* RB IN ((multi_column_for_loop1(COMMA multi_column_for_loop1)*)|subquery)
-	;
-	
-fragment	
+    :    FOR dimension_column(COMMA dimension_column)* RB IN ((multi_column_for_loop1(COMMA multi_column_for_loop1)*)|subquery)
+    ;
+    
+fragment    
 multi_column_for_loop1
-	:	LB literal(COMMA literal)* RB
-	;
-		
+    :    LB literal(COMMA literal)* RB
+    ;
+        
 literal
-	:	IDENT
-	;		
-							
+    :    IDENT
+    ;        
+                            
 order_by_clause
-	:	ORDER SIBLINGS? BY order_by_clause1(COMMA order_by_clause1)*
-	;
-	
-fragment	
+    :    ORDER SIBLINGS? BY order_by_clause1(COMMA order_by_clause1)*
+    ;
+    
+fragment    
 order_by_clause1
-	:	(expr|c_alias) ( ASC| DESC)? (( NULLS FIRST)|(NULLS LAST))?	
-	;
-	
-	
+    :    (expr) ( ASC| DESC)? (( NULLS FIRST)|(NULLS LAST))?    
+    ;
+    
+    
 for_update_clause
-	:	FOR UPDATE (OF for_update_clause1(COMMA)for_update_clause1)? ( NOWAIT|( WAIT integer))?	
-	;
-	
-fragment	
+    :    FOR UPDATE (OF for_update_clause1(COMMA)for_update_clause1)? ( NOWAIT|( WAIT integer))?    
+    ;
+    
+fragment    
 for_update_clause1
-	:	((schema DOT)?(IDENT)DOT)? column
-	;
-	
+    :    ((schema DOT)?(IDENT)DOT)? column
+    ;
+    
 condition
-	:	comparison_condition
-	|	floating_point_condition
-	|	logical_condition
-	|	model_condition
-	|	multiset_condition
-	|	pattern_matching_condition
-	|	range_condition
-	|	null_condition
-	|	XML_condition
-	|	( LB condition RB|NOT expr|expr ( AND | OR ) expr )
-	|	exists_condition
-	|	in_condition
-	|	is_of_type_condition
+	:	(b1 OR) => b1 OR condition
+	|	b1
 	;
-	
-comparison_condition
-	:	simple_comparison_condition
-	|	group_comparison_condition	
-	;
-	
-simple_comparison_condition
-	: 	expr ( '=' | '!=' | '^=' | '<>' | '>' | '<' | '>=' | '<=' )  expr
-	|	LB expr (COMMA expr )* RB ( '=' | '!=' | '^=' | '<>' ) LB subquery RB
-	;
+    
+fragment    
+expr_comparison
+	:	expr ( '=' | '!=' | '^=' | '<>' | '>' | '<' | '>=' | '<=' )  
+		(
+			expr 
+			|	( ANY | SOME | ALL ) LB ( expression_list | subquery ) RB
+		)
+	;    
 
-group_comparison_condition
-	: 	expr ( '=' | '!=' | '^=' | '<>' | '>' | '<' | '>=' | '<=' ) ( ANY | SOME | ALL )
-     	LB ( expression_list | subquery ) RB
-	|	expr (COMMA expr)* ( '=' | '!=' | '^=' | '<>' ) ( ANY | SOME | ALL )
-	LB ((expression_list (COMMA expression_list)*)|subquery) RB
-	;
-
+fragment
+expr_list_condition
+	:	 LB expr (COMMA expr )+ RB ( '=' | '!=' | '^=' | '<>' ) 
+		(
+			LB subquery RB
+			|	( ANY | SOME | ALL )  LB ((expression_list (COMMA expression_list)*) | subquery) RB
+		)
+	;    
+    
 floating_point_condition
 	:	expr IS NOT? ( NAN | INFINITE )
 	;
+    
 	
-logical_condition
-	:	expr AND expr
-	|	expr OR	expr
-	|	NOT expr
+fragment
+b1
+	:	(b2 AND) => b2 AND condition
+	|	b2
 	;
 	
-	
+fragment 
+b2
+	:	NOT condition
+	|	LB condition RB
+	|	(expr ( '=' | '!=' | '^=' | '<>' | '>' | '<' | '>=' | '<=' ) ) => expr_comparison
+	|	(LB expr (COMMA expr )+ RB ( '=' | '!=' | '^=' | '<>' )) => expr_list_condition
+	|	(floating_point_condition) => floating_point_condition
+//    |    model_condition
+//    |    multiset_condition
+//    |    pattern_matching_condition
+	|	(range_condition) => range_condition
+	|	(null_condition) => null_condition
+//    |    XML_condition
+    //|    LB condition RB
+	|	(exists_condition) => exists_condition
+	|	(in_condition) => in_condition
+//	|	(is_of_type_condition) => is_of_type_condition
+	;
+    
 model_condition
 	:	is_any_condition
 	|	is_present_condition
 	;
-	
+    
 is_any_condition
 	:	(dimension_column IS )? ANY
 	;
-	
+    
 is_present_condition
 	:	cell_reference IS PRESENT
 	;
-	
+    
 cell_reference
 	:	IDENT
-	;	
-	
+	;    
+    
 multiset_condition
-	:	is_a_set_conditions
-	|	is_empty_conditions
-	|	member_condition
-	|	submultiset_conditions
-	;
-	
+    :    is_a_set_conditions
+    |    is_empty_conditions
+    |    member_condition
+    |    submultiset_conditions
+    ;
+    
 is_a_set_conditions
-	:	nested_table IS NOT? A_SIGN SET
-	;
-	
+    :    nested_table IS NOT? A_SIGN SET
+    ;
+    
 nested_table
-	:	IDENT
-	;	
-	
+    :    IDENT
+    ;    
+    
 is_empty_conditions
-	:	nested_table IS NOT? EMPTY
-	;
+    :    nested_table IS NOT? EMPTY
+    ;
 
 member_condition
-	:	expr NOT? MEMBER OF? nested_table
-	;
-	
+    :    expr NOT? MEMBER OF? nested_table
+    ;
+    
 submultiset_conditions
-	:	nested_table NOT? SUBMULTISET OF? nested_table
-	;
-	
-pattern_matching_condition
-	:	like_condition
-	|	regexp_like_condition
-	;
-	
+    :    nested_table NOT? SUBMULTISET OF? nested_table
+    ;
+    
+//pattern_matching_condition
+//    :    like_condition
+//    |    regexp_like_condition
+//    ;
+    
 like_condition
-	:	char NOT? ( LIKE | LIKEC | LIKE2 | LIKE4 ) char ( ESCAPE char)?
-	;
-	
-char
-	:	( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '$' | '#' )
-	;	
-	
-regexp_like_condition
-	:	REGEXP_LIKE LB char COMMA pattern (COMMA match_parameter )? RB
-	;
-	
+    :
+//    :    CHAR NOT? ( LIKE | LIKEC | LIKE2 | LIKE4 ) CHAR ( ESCAPE char)?
+    ;
+    
+//char
+//    :    ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '$' | '#' )
+//    ;    
+    
+//regexp_like_condition
+//    :    REGEXP_LIKE LB char COMMA pattern (COMMA match_parameter )? RB
+//    ;
+    
 match_parameter
-	:	expr
-	;	
-	
+    :    expr
+    ;    
+    
 range_condition
-	:	expr NOT? BETWEEN expr AND expr
-	;
+    :    expr NOT? BETWEEN expr AND expr
+    ;
 
 null_condition
-	:	expr IS NOT? NULL
-	;
+    :    expr IS NOT? NULL
+    ;
 
-XML_condition
-	:	
-	;
-	
 exists_condition
-	:	EXISTS LB subquery RB
-	;
+    :    EXISTS LB subquery RB
+    ;
 
 in_condition
-	:	expr NOT? IN LB ( expression_list | subquery ) RB
-	|	LB expr (COMMA expr)* RB NOT? IN LB ( (expression_list(COMMA expression_list)*)| subquery) RB
+	:	(expr) => expr NOT? IN LB ( expression_list | subquery ) RB
+	|	(LB expr (COMMA expr)+ RB) NOT? IN LB ( (expression_list(COMMA expression_list)*)| subquery) RB
 	;
 
 is_of_type_condition
-	:	expr IS NOT? OF TYPE LB is_of_type_condition1 (COMMA is_of_type_condition1)* RB
-	;
-	
-fragment	
+    :    expr IS NOT? OF TYPE LB is_of_type_condition1 (COMMA is_of_type_condition1)* RB
+    ;
+    
+fragment    
 is_of_type_condition1
-	: ONLY? (schema DOT) type
-	;
+    : ONLY? (schema DOT) type
+    ;
 
 type
 	:	IDENT
 	;
 
 expr
-	: 	simple_expression
-	|	compound_expression
-	|	case_expression
-	|	cursor_expression
-	|	datetime_expression
-	|	function_expression
-	|	interval_expression
-	|	object_access_expression
-	|	scalar_subquery_expression
-	|	model_expression
-	|	type_constructor_expression
-	|	variable_expression
-	;
-	
-simple_expression
-	: 	( query_name DOT | (schema DOT IDENT DOT)? ( column | ROWID ))
-	|	ROWNUM
-	|	string
-	|	number
-	|	sequence DOT ( CURRVAL | NEXTVAL )
-	|	NULL
-	;
+    :   (compound_expr) => compound_expr
+    |    case_expression
+//    |    cursor_expression
+    |    datetime_expression
+//    |    function_expression
+//    |    interval_expression
+//    |    object_access_expression
+    |    scalar_subquery_expression
+//    |    model_expression
+//    |    type_constructor_expression
+//    |    variable_expression
+    ;
 
-string
-	:	QUOTE char* QUOTE
+obj_path_expression
+	:	IDENT (DOT IDENT)? (AT_SIGN schema)?
 	;
-
+    
 
 integer
-	:	NUMBER
-	;
+    :    number
+    ;
 
 number
-	:	 NUMBER
-	;
+	:     NUMBER
+    ;
 
 sequence
-	:	IDENT
+   	:	IDENT
 	;
 
-compound_expression
-	:	LB expr RB
-	|	( PLUS | MINUS | PRIOR ) expr
-	|	expr_add
-	|	expr_mul
-	|	expr_sign
-	;
 
-expr_add
-	:	expr_mul (PLUS | MINUS | DOUBLEVERTBAR) expr_mul
+compound_expr
+	:	(e1 ( PLUS | MINUS| DOUBLEVERTBAR)) => e1 ( PLUS | MINUS | DOUBLEVERTBAR) expr
+	|	e1
 	;
 	
-expr_mul
-	:	expr_sign ( ( ASTERISK | DIVIDE ) expr_sign )*	
-	;	
-
-expr_sign
-	:	( PLUS | MINUS ) expr
+fragment	
+e1
+	:	(e2 (ASTERISK | DIVIDE) )=> e2 (ASTERISK | DIVIDE) expr
+	|	e2
 	;
 
+fragment
+e2
+	:	PRIOR expr
+	|	LB expr RB
+	|	(obj_path_expression DOT)? ( column | ROWID )
+	|	ROWNUM
+	|	NULL
+	|	QUOTE IDENT_CHAR* QUOTE
+	|	number
+	|	(sequence DOT ( CURRVAL | NEXTVAL )) => sequence DOT ( CURRVAL | NEXTVAL )
+	;
 
 case_expression
-	:	CASE ( simple_case_expression | searched_case_expression) else_clause? END
-	;
+    :    CASE ( simple_case_expression | searched_case_expression) (ELSE expr)? END
+    ;
 
 simple_case_expression
-	:	expr ( WHEN comparison_expr THEN expr)+
-	;
-	
-comparison_expr
-	:	expr
-	;	
-	
+    :    expr ( WHEN condition THEN expr)+
+    ;
+    
+   
 searched_case_expression
-	:	(WHEN condition THEN expr)+
-	;
+    :    (WHEN condition THEN expr)+
+    ;
 
-else_clause
-	:	ELSE expr
-	;
 
 cursor_expression
-	:	CURSOR LB subquery RB
-	;
+    :    CURSOR LB subquery RB
+    ;
 
 datetime_expression
-	:	datetime_value_expr AT ( LOCAL | ('TIME' 'ZONE' datetime_expression1))
-	;
-	
+    :    datetime_value_expr AT ( LOCAL | ('TIME' 'ZONE' datetime_expression1))
+    ;
+    
 datetime_value_expr
-	:
-	;	
-	
+    :
+    ;    
+    
 datetime_expression1
-//	:	' [ + | - ] hh:mm'
-	:	DBTIMEZONE
-// 	:	' time_zone_name '
-	|	expr
+//    :    ' [ + | - ] hh:mm'
+    :    DBTIMEZONE
+//     :    ' time_zone_name '
+    |    expr
         ;
                
 function_expression
-	:
-	;
-	
+    :
+    ;
+    
 
 interval_expression
-	:	interval_value_expr interval_expression1
-	;
+    :    interval_value_expr interval_expression1
+    ;
    
 interval_value_expr
-	:
-//	:	expr
-	;   
+    :
+//    :    expr
+    ;   
    
 interval_expression1
-	:	DAY ( LB leading_field_precision RB )? TO SECOND ( LB fractional_second_precision RB )?
-	|	YEAR ( LB leading_field_precision RB )? TO MONTH
-	;
+    :    DAY ( LB leading_field_precision RB )? TO SECOND ( LB fractional_second_precision RB )?
+    |    YEAR ( LB leading_field_precision RB )? TO MONTH
+    ;
 
 leading_field_precision
-	:	integer
-	;
+    :    integer
+    ;
 
 fractional_second_precision
-	:	integer
-	;
+    :    integer
+    ;
 
-object_access_expression
-	:
-	;
-	
+   
 scalar_subquery_expression
-	:	subquery
-	;
-	
+    :   LB  scalar_subquery RB
+    ;
+    
 model_expression
-	:
-	;
-	
+    :
+    ;
+    
 type_constructor_expression
-	:
-	;
-	
+    :
+    ;
+    
 variable_expression
-	:	COLON host_variable (INDICATOR? COLON indicator_variable)?
-	;
-	
-fragment	
+    :    COLON host_variable (INDICATOR? COLON indicator_variable)?
+    ;
+    
+fragment    
 host_variable
-	:	IDENT
-	;	
-	
-fragment	
+    :    IDENT
+    ;    
+    
+fragment    
 indicator_variable
-	:	IDENT
-	;	
-	
-IDENT
-	:	'A' .. 'Z' ( 'A' .. 'Z' | '0' .. '9' | '_' | '$' | '#' )*
-	|	'"' 'A' .. 'Z' ( 'A' .. 'Z' | '0' .. '9' | '_' | '$' | '#' )* '"'	
-	;	
+    :    IDENT
+    ;    
+    
+    
+SL_COMMENT
+    :    '--' (options {greedy=false;} : .)* ('\r'|'\n'|'\r\n')
+        {$channel=HIDDEN;}
+    ;
+    
+ML_COMMENT
+    :   '/*' (options {greedy=false;} : .)* '*/'
+        {$channel=HIDDEN;}
+    ;
 
-
-	
-QUOTE
-	:	'\''
-	;
-
-	
-N
-	: '0' .. '9' ( '0' .. '9' )*
-	;
-	
-	
-NUMBER
-	:	(	( N DOT N ) => N DOT N
-		|	DOT N
-		|	N
-		)
-		( 'E' ( PLUS | MINUS )? N )?
-	;
-			
-
-
+    
+WS    :    (' '|'\r'|'\t'|'\n') {$channel=HIDDEN;}
+    ;
 
 SELECT
-	:	'SELECT'
-	;
+    :    'SELECT'
+    ;
 
 ALL
-	:	'ALL'
-	;
+    :    'ALL'
+    ;
 
 UNIQUE
-	:	'UNIQUE'
-	;
+    :    'UNIQUE'
+    ;
 
 DISTINCT
-	:	'DISTINCT'
-	;
+    :    'DISTINCT'
+    ;
 
 FROM
-	:	'FROM'
-	;
+    :    'FROM'
+    ;
 
 HAVING
-	:	'HAVING'
-	;
+    :    'HAVING'
+    ;
 
 UNION
-	:	'UNION'
-	;
+    :    'UNION'
+    ;
 
 INTERSECT
-	:	'INTERSECT'
-	;
+    :    'INTERSECT'
+    ;
 
 MINUS
-	:	'MINUS'
-	;
+    :    'MINUS'
+    ;
 
 LB
-	:	'('
-	;
+    :    '('
+    ;
 
 RB
-	:	')'
-	;
+    :    ')'
+    ;
 
 WITH
-	:	'WITH'
-	;
+    :    'WITH'
+    ;
 
 AS
-	:	'AS'
-	;
+    :    'AS'
+    ;
 
 COMMA
-	:	','
-	;
+    :    ','
+    ;
 
 DOT
-	:	'.'
-	;
+    :    '.'
+    ;
 
 ONLY
-	:	'ONLY'
-	;
+    :    'ONLY'
+    ;
 
 VERSIONS
-	:	'VERSIONS'
-	;
+    :    'VERSIONS'
+    ;
 
 BETWEEN
-	:	'BETWEEN'
-	;
+    :    'BETWEEN'
+    ;
 
 SCN
-	:	'SCN'
-	;
+    :    'SCN'
+    ;
 
 TIMESTAMP
-	:	'TIMESTAMP'
-	;
+    :    'TIMESTAMP'
+    ;
 
 MINVALUE
-	:	'MINVALUE'
-	;
+    :    'MINVALUE'
+    ;
 
 AND
-	:	'AND'
-	;
+    :    'AND'
+    ;
 
 MAXVALUE
-	:	'MAXVALUE'
-	;
+    :    'MAXVALUE'
+    ;
 
 OF
-	:	'OF'
-	;
+    :    'OF'
+    ;
 
 TABLE
-	:	'TABLE'
-	;
+    :    'TABLE'
+    ;
 
 VIEW
-	:	'VIEW'
-	;
+    :    'VIEW'
+    ;
 
 MATERIALIZED
-	:	'MATERIALIZED'
-	;
+    :    'MATERIALIZED'
+    ;
 
 PARTITION
-	:	'PARTITION'
-	;
+    :    'PARTITION'
+    ;
 
 SUBPARTITION
-	:	'SUBPARTITION'
-	;
+    :    'SUBPARTITION'
+    ;
 
 AT_SIGN
-	:	'@'
-	;
+    :    '@'
+    ;
 
 SAMPLE
-	:	'SAMPLE'
-	;
+    :    'SAMPLE'
+    ;
 
 BLOCK
-	:	'BLOCK'
-	;
+    :    'BLOCK'
+    ;
 
 SEED
-	:	'SEED'
-	;
+    :    'SEED'
+    ;
 
 READ
-	:	'READ'
-	;
+    :    'READ'
+    ;
 
 CHECK
-	:	'CHECK'
-	;
+    :    'CHECK'
+    ;
 
 OPTION
-	:	'OPTION'
-	;
+    :    'OPTION'
+    ;
 
 CONSTRAINT
-	:	'CONSTRAINT'
-	;
+    :    'CONSTRAINT'
+    ;
 
 INNER
-	:	'INNER'
-	;
+    :    'INNER'
+    ;
 
 JOIN
-	:	'JOIN'
-	;
+    :    'JOIN'
+    ;
 
 ON
-	:	'ON'
-	;
+    :    'ON'
+    ;
 
 USING
-	:	'USING'
-	;
+    :    'USING'
+    ;
 
 CROSS
-	:	'CROSS'
-	;
+    :    'CROSS'
+    ;
 
 NATURAL
-	:	'NATURAL'
-	;
+    :    'NATURAL'
+    ;
 
 FULL
-	:	'FULL'
-	;
+    :    'FULL'
+    ;
 
 LEFT
-	:	'LEFT'
-	;
+    :    'LEFT'
+    ;
 
 RIGHT
-	:	'RIGHT'
-	;
+    :    'RIGHT'
+    ;
 
 OUTER
-	:	'OUTER'
-	;
+    :    'OUTER'
+    ;
 
 WHERE
-	:	'WHERE'
-	;
+    :    'WHERE'
+    ;
 
 START
-	:	'START'
-	;
+    :    'START'
+    ;
 
 CONNECT
-	:	'CONNECT'
-	;
+    :    'CONNECT'
+    ;
 
 BY
-	:	'BY'
-	;
+    :    'BY'
+    ;
 
 NOCYCLE
-	:	'NOCYCLE'
-	;
+    :    'NOCYCLE'
+    ;
 
 GROUP
-	:	'GROUP'
-	;
+    :    'GROUP'
+    ;
 
 ROLLUP
-	:	'ROLLUP'
-	;
+    :    'ROLLUP'
+    ;
 
 CUBE
-	:	'CUBE'
-	;
+    :    'CUBE'
+    ;
 
 GROUPING
-	:	'GROUPING'
-	;
+    :    'GROUPING'
+    ;
 
 SETS
-	:	'SETS'
-	;
+    :    'SETS'
+    ;
 
 MODEL
-	:	'MODEL'
-	;
+    :    'MODEL'
+    ;
 
 IGNORE
-	:	'IGNORE'
-	;
+    :    'IGNORE'
+    ;
 
 KEEP
-	:	'KEEP'
-	;
+    :    'KEEP'
+    ;
 
 NAW
-	:	'NAW'
-	;
+    :    'NAW'
+    ;
 
 DIMENSION
-	:	'DIMENSION'
-	;
+    :    'DIMENSION'
+    ;
 
 SINGLE
-	:	'SINGLE'
-	;
+    :    'SINGLE'
+    ;
 
 REFERENCE
-	:	'REFERENCE'
-	;
+    :    'REFERENCE'
+    ;
 
 RETURN
-	:	'RETURN'
-	;
+    :    'RETURN'
+    ;
 
 UPDATED
-	:	'UPDATED'
-	;
+    :    'UPDATED'
+    ;
 
 ROWS
-	:	'ROWS'
-	;
+    :    'ROWS'
+    ;
 
 MAIN
-	:	'MAIN'
-	;
+    :    'MAIN'
+    ;
 
 MEASURES
-	:	'MEASURES'
-	;
+    :    'MEASURES'
+    ;
 
 RULES
-	:	'RULES'
-	;
+    :    'RULES'
+    ;
 
 UPDATE
-	:	'UPDATE'
-	;
+    :    'UPDATE'
+    ;
 
 UPSERT
-	:	'UPSERT'
-	;
+    :    'UPSERT'
+    ;
 
 AUTOMATIC
-	:	'AUTOMATIC'
-	;
+    :    'AUTOMATIC'
+    ;
 
 SECUENTIAL
-	:	'SECUENTIAL'
-	;
+    :    'SECUENTIAL'
+    ;
 
 ORDER
-	:	'ORDER'
-	;
+    :    'ORDER'
+    ;
 
 ITERATE
-	:	'ITERATE'
-	;
+    :    'ITERATE'
+    ;
 
 UNTIL
-	:	'UNTIL'
-	;
+    :    'UNTIL'
+    ;
 
 LSB
-	:	'['
-	;
+    :    '['
+    ;
 
 RSB
-	:	']'
-	;
+    :    ']'
+    ;
 
 FOR
-	:	'FOR'
-	;
+    :    'FOR'
+    ;
 
 IN
-	:	'IN'
-	;
+    :    'IN'
+    ;
 
 LIKE
-	:	'LIKE'
-	;
+    :    'LIKE'
+    ;
 
 TO
-	:	'TO'
-	;
+    :    'TO'
+    ;
 
 INCREMENT
-	:	'INCREMENT'
-	;
+    :    'INCREMENT'
+    ;
 
 DECREMENT
-	:	'DECREMENT'
-	;
+    :    'DECREMENT'
+    ;
 
 SIBLINGS
-	:	'SIBLINGS'
-	;
+    :    'SIBLINGS'
+    ;
 
 ASC
-	:	'ASC'
-	;
+    :    'ASC'
+    ;
 
 DESC
-	:	'DESC'
-	;
+    :    'DESC'
+    ;
 
 NULLS
-	:	'NULLS'
-	;
+    :    'NULLS'
+    ;
 
 FIRST
-	:	'FIRST'
-	;
+    :    'FIRST'
+    ;
 
 LAST
-	:	'LAST'
-	;
+    :    'LAST'
+    ;
 
 NOWAIT
-	:	'NOWAIT'
-	;
+    :    'NOWAIT'
+    ;
 
 WAIT
-	:	'WAIT'
-	;
+    :    'WAIT'
+    ;
 
 ANY
-	:	'ANY'
-	;
+    :    'ANY'
+    ;
 
 SOME
-	:	'SOME'
-	;
+    :    'SOME'
+    ;
 
 IS
-	:	'IS'
-	;
+    :    'IS'
+    ;
 
 NOT
-	:	'NOT'
-	;
+    :    'NOT'
+    ;
 
 NAN
-	:	'NAN'
-	;
+    :    'NAN'
+    ;
 
 INFINITE
-	:	'INFINITE'
-	;
+    :    'INFINITE'
+    ;
 
 PRESENT
-	:	'PRESENT'
-	;
+    :    'PRESENT'
+    ;
 
 A_SIGN
-	:	'A'
-	;
+    :    'A'
+    ;
 
 SET
-	:	'SET'
-	;
+    :    'SET'
+    ;
 
 EMPTY
-	:	'EMPTY'
-	;
+    :    'EMPTY'
+    ;
 
 MEMBER
-	:	'MEMBER'
-	;
+    :    'MEMBER'
+    ;
 
 SUBMULTISET
-	:	'SUBMULTISET'
-	;
+    :    'SUBMULTISET'
+    ;
 
 LIKEC
-	:	'LIKEC'
-	;
+    :    'LIKEC'
+    ;
 
 LIKE2
-	:	'LIKE2'
-	;
+    :    'LIKE2'
+    ;
 
 LIKE4
-	:	'LIKE4'
-	;
+    :    'LIKE4'
+    ;
 
 ESCAPE
-	:	'ESCAPE'
-	;
+    :    'ESCAPE'
+    ;
 
 REGEXP_LIKE
-	:	'REGEXP_LIKE'
-	;
+    :    'REGEXP_LIKE'
+    ;
 
 NULL
-	:	'NULL'
-	;
+    :    'NULL'
+    ;
 
 OR
-	:	'OR'
-	;
+    :    'OR'
+    ;
 
 EXISTS
-	:	'EXISTS'
-	;
+    :    'EXISTS'
+    ;
 
 TYPE
-	:	'TYPE'
-	;
+    :    'TYPE'
+    ;
 
 ASTERISK
-	:	'*'
-	;
-
-DOT_ASTERISK
-	:	'.*'
-	;
+    :    '*'
+    ;
 
 ROWID
-	:	'ROWID'
-	;
+    :    'ROWID'
+    ;
 
 ROWNUM
-	:	'ROWNUM'
-	;
+    :    'ROWNUM'
+    ;
 
 CURRVAL
-	:	'CURRVAL'
-	;
+    :    'CURRVAL'
+    ;
 
 NEXTVAL
-	:	'NEXTVAL'
-	;
+    :    'NEXTVAL'
+    ;
 
 PRIOR
-	:	'PRIOR'
-	;
+    :    'PRIOR'
+    ;
 
 CASE
-	:	'CASE'
-	;
+    :    'CASE'
+    ;
 
 END
-	:	'END'
-	;
+    :    'END'
+    ;
 
 WHEN
-	:	'WHEN'
-	;
+    :    'WHEN'
+    ;
 
 THEN
-	:	'THEN'
-	;
+    :    'THEN'
+    ;
 
 ELSE
-	:	'ELSE'
-	;
+    :    'ELSE'
+    ;
 
 CURSOR
-	:	'CURSOR'
-	;
+    :    'CURSOR'
+    ;
 
 AT
-	:	'AT'
-	;
+    :    'AT'
+    ;
 
 LOCAL
-	:	'LOCAL'
-	;
+    :    'LOCAL'
+    ;
 
 DBTIMEZONE
-	:	'DBTIMEZONE'
-	;
+    :    'DBTIMEZONE'
+    ;
 
 DAY
-	:	'DAY'
-	;
+    :    'DAY'
+    ;
 
 YEAR
-	:	'YEAR'
-	;
+    :    'YEAR'
+    ;
 
 SECOND
-	:	'SECOND'
-	;
+    :    'SECOND'
+    ;
 
 MONTH
-	:	'MONTH'
-	;
+    :    'MONTH'
+    ;
 
 INDICATOR
-	:	'INDICATOR'
-	;
+    :    'INDICATOR'
+    ;
 
 PLUS
-	:	'+'
-	;
+    :    '+'
+    ;
 
 
 
 SEMICOLON
-	:	';'
-	;
+    :    ';'
+    ;
 
 COLON
-	:	'\:'
-	;
+    :    '\:'
+    ;
 
 DOUBLEVERTBAR
-	:	'||'
-	;
+    :    '||'
+    ;
 
 DIVIDE
-	:	'/'
-	;
+    :    '/'
+    ;
+
+
+QUOTE
+    :    '\''
+    ;
+
+fragment    
+N
+    : '0' .. '9' ( '0' .. '9' )*
+    ;
+    
+    
+NUMBER
+    :    (    ( N DOT N ) => N DOT N
+        |    DOT N
+        |    N
+        )
+        ( 'E' ( PLUS | MINUS )? N )?
+    ;
+
+fragment
+IDENT_CHAR
+    :'A' .. 'Z'
+    |'a'..'z'
+    ;
+            
+IDENT
+    :    IDENT_CHAR ( IDENT_CHAR | N | '_' | '$' | '#' )*
+//    |    '"' IDENT '"'    
+    ;    
+
+
