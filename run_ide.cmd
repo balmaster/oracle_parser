@@ -1,0 +1,1 @@
+start java -Xmx512m -jar lib\antlrworks-1.3.jar %*
