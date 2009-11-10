@@ -647,89 +647,118 @@ ML_COMMENT
 WS    :    (' '|'\r'|'\t'|'\n') {$channel=HIDDEN;}
     ;
 
+
+fragment A:('a'|'A');
+fragment B:('b'|'B');
+fragment C:('c'|'C');
+fragment D:('d'|'D');
+fragment E:('e'|'E');
+fragment F:('f'|'F');
+fragment G:('g'|'G');
+fragment H:('h'|'H');
+fragment I:('i'|'I');
+fragment J:('j'|'J');
+fragment K:('k'|'K');
+fragment L:('l'|'L');
+fragment M:('m'|'M');
+fragment N:('n'|'N');
+fragment O:('o'|'O');
+fragment P:('p'|'P');
+fragment Q:('q'|'Q');
+fragment R:('r'|'R');
+fragment S:('s'|'S');
+fragment T:('t'|'T');
+fragment U:('u'|'U');
+fragment V:('v'|'V');
+fragment W:('w'|'W');
+fragment X:('x'|'X');
+fragment Y:('y'|'Y');
+fragment Z:('z'|'Z');
+
+
 SELECT
-    :    'SELECT'
-    ;
+	:	S E L E C T 
+	;
 
 ALL
-    :    'ALL'
-    ;
+	:	A L L
+	;
 
 UNIQUE
-    :    'UNIQUE'
-    ;
+	:	U N I Q U E
+	;
 
 DISTINCT
-    :    'DISTINCT'
-    ;
+	:	D I S T I N C T
+	;
 
 FROM
-    :    'FROM'
-    ;
+	:	F R O M
+	;
 
 HAVING
-    :    'HAVING'
-    ;
+	:	H A V I N G
+	;
 
 UNION
-    :    'UNION'
-    ;
+	:	U N I O N
+	;
 
 INTERSECT
-    :    'INTERSECT'
-    ;
+	:	I N T E R S E C T
+	;
 
 MINUS
-    :    'MINUS'
-    ;
+	:	M I N U S
+	;
 
 LB
-    :    '('
-    ;
+	:	'('
+	;
 
 RB
-    :    ')'
-    ;
+	:	')'
+	;
 
 WITH
-    :    'WITH'
-    ;
+	:	W I T H
+	;
 
 AS
-    :    'AS'
-    ;
+	:	A S
+	;
 
 COMMA
-    :    ','
-    ;
+	:	','
+	;
 
 DOT
-    :    '.'
-    ;
+	:	'.'
+	;
 
 ONLY
-    :    'ONLY'
-    ;
+	:	O N L Y
+	;
 
 VERSIONS
-    :    'VERSIONS'
-    ;
+	:	V E R S I O N S
+	;
 
 BETWEEN
-    :    'BETWEEN'
-    ;
+	:	B E T W E E N
+	;
 
 SCN
-    :    'SCN'
-    ;
+	:	S C N
+	;
 
 TIMESTAMP
-    :    'TIMESTAMP'
-    ;
+	:	T I M E S T A M P
+	;
 
 MINVALUE
-    :    'MINVALUE'
-    ;
+	:	M I N V A L U E
+	;
 
 AND
     :    'AND'
@@ -1211,18 +1240,19 @@ QUOTE
     ;
 
 fragment    
-N
+N_
     : '0' .. '9' ( '0' .. '9' )*
     ;
     
     
 NUMBER
-    :    (    ( N DOT N ) => N DOT N
-        |    DOT N
-        |    N
-        )
-        ( 'E' ( PLUS | MINUS )? N )?
-    ;
+	:	(
+			( N_ DOT ) => N_ DOT N_?
+	        	|DOT N_
+		        |N_
+		)
+		( 'E' ( PLUS | MINUS )? N_ )?
+	;
 
 fragment
 IDENT_CHAR
