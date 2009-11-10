@@ -6,6 +6,7 @@ options {
 	backtrack=false;
 }
 
+
 start_rule
 	:	select
 	;
@@ -491,31 +492,32 @@ type
 	;
 
 expr
-    :   (compound_expr) => compound_expr
-    |    case_expression
+	:	(compound_expr) => compound_expr
+	|	case_expression
 //    |    cursor_expression
-    |    datetime_expression
-//    |    function_expression
+	|	datetime_expression
 //    |    interval_expression
 //    |    object_access_expression
-    |    scalar_subquery_expression
+	|	LB  scalar_subquery RB
 //    |    model_expression
 //    |    type_constructor_expression
 //    |    variable_expression
-    ;
+	|	(function_expression) => function_expression
+	;
 
+fragment
 obj_path_expression
 	:	IDENT (DOT IDENT)? (AT_SIGN schema)?
 	;
     
 
 integer
-    :    number
-    ;
+	:	number
+	;
 
 number
-	:     NUMBER
-    ;
+	:	NUMBER
+	;
 
 sequence
    	:	IDENT
@@ -540,7 +542,7 @@ e2
 	|	(obj_path_expression DOT)? ( column | ROWID )
 	|	ROWNUM
 	|	NULL
-	|	QUOTE IDENT_CHAR* QUOTE
+	|	STRING
 	|	number
 	|	(sequence DOT ( CURRVAL | NEXTVAL )) => sequence DOT ( CURRVAL | NEXTVAL )
 	;
@@ -573,14 +575,14 @@ datetime_value_expr
     
 datetime_expression1
 //    :    ' [ + | - ] hh:mm'
-    :    DBTIMEZONE
+	:	DBTIMEZONE
 //     :    ' time_zone_name '
-    |    expr
-        ;
+	|	expr
+	;
                
 function_expression
-    :
-    ;
+	:	IDENT LB (expr (COMMA expr)*)? RB
+	;
     
 
 interval_expression
@@ -606,10 +608,7 @@ fractional_second_precision
     ;
 
    
-scalar_subquery_expression
-    :   LB  scalar_subquery RB
-    ;
-    
+   
 model_expression
     :
     ;
@@ -634,18 +633,17 @@ indicator_variable
     
     
 SL_COMMENT
-    :    '--' (options {greedy=false;} : .)* ('\r'|'\n'|'\r\n')
-        {$channel=HIDDEN;}
-    ;
+	:	'--' (options {greedy=false;} : .)* ('\r'|'\n'|'\r\n') {$channel=HIDDEN;}
+	;
     
 ML_COMMENT
-    :   '/*' (options {greedy=false;} : .)* '*/'
-        {$channel=HIDDEN;}
-    ;
+	:	'/*' (options {greedy=false;} : .)* '*/' {$channel=HIDDEN;}
+	;
 
     
-WS    :    (' '|'\r'|'\t'|'\n') {$channel=HIDDEN;}
-    ;
+WS    
+	:	(' '|'\r'|'\t'|'\n') {$channel=HIDDEN;}
+	;
 
 
 fragment A:('a'|'A');
@@ -761,508 +759,508 @@ MINVALUE
 	;
 
 AND
-    :    'AND'
-    ;
+	:	A N D
+	;
 
 MAXVALUE
-    :    'MAXVALUE'
-    ;
+	:	M A X V A L U E
+	;
 
 OF
-    :    'OF'
-    ;
+	:	O F
+	;
 
 TABLE
-    :    'TABLE'
-    ;
+	:	T A B L E
+	;
 
 VIEW
-    :    'VIEW'
-    ;
+	:	V I E W 
+	;
 
 MATERIALIZED
-    :    'MATERIALIZED'
-    ;
+	:	M A T E R I A L I Z E D 
+	;
 
 PARTITION
-    :    'PARTITION'
-    ;
+	:	P A R T I T I O N
+	;
 
 SUBPARTITION
-    :    'SUBPARTITION'
-    ;
+	:	S U B P A R T I T I O N
+	;
 
 AT_SIGN
-    :    '@'
-    ;
+	:	'@'
+	;
 
 SAMPLE
-    :    'SAMPLE'
-    ;
+	:	S A M P L E
+	;
 
 BLOCK
-    :    'BLOCK'
-    ;
+	:	B L O C K
+	;
 
 SEED
-    :    'SEED'
-    ;
+	:	S E E D
+	;
 
 READ
-    :    'READ'
-    ;
+	:	R E A D
+	;
 
 CHECK
-    :    'CHECK'
-    ;
+	:	C H E C K
+	;
 
 OPTION
-    :    'OPTION'
-    ;
+	:	O P T I O N
+	;
 
 CONSTRAINT
-    :    'CONSTRAINT'
-    ;
+	:	C O N S T R A I N T
+	;
 
 INNER
-    :    'INNER'
-    ;
+	:	I N N E R
+	;
 
 JOIN
-    :    'JOIN'
-    ;
+	:	J O I N
+	;
 
 ON
-    :    'ON'
-    ;
+	:	O N
+	;
 
 USING
-    :    'USING'
-    ;
+	:	U S I N G
+	;
 
 CROSS
-    :    'CROSS'
-    ;
+	:	C R O S S
+	;
 
 NATURAL
-    :    'NATURAL'
-    ;
+	:	N A T U R A L
+	;
 
 FULL
-    :    'FULL'
-    ;
+	:	F U L L
+	;
 
 LEFT
-    :    'LEFT'
-    ;
+	:	L E F T
+	;
 
 RIGHT
-    :    'RIGHT'
-    ;
+	:	R I G H T
+	;
 
 OUTER
-    :    'OUTER'
-    ;
+	:	O U T E R
+	;
 
 WHERE
-    :    'WHERE'
-    ;
+	:	W H E R E
+	;
 
 START
-    :    'START'
-    ;
+	:	S T A R T
+	;
 
 CONNECT
-    :    'CONNECT'
-    ;
+	:	C O N N E C T
+	;
 
 BY
-    :    'BY'
-    ;
+	:	B Y
+	;
 
 NOCYCLE
-    :    'NOCYCLE'
-    ;
+	:	N O C Y C L E
+	;
 
 GROUP
-    :    'GROUP'
-    ;
+	:	G R O U P
+	;
 
 ROLLUP
-    :    'ROLLUP'
-    ;
+	:	R O L L U P
+	;
 
 CUBE
-    :    'CUBE'
-    ;
+	:	C U B E 
+	;
 
 GROUPING
-    :    'GROUPING'
-    ;
+	:	G R O U P I N G
+	;
 
 SETS
-    :    'SETS'
-    ;
+	:	S E T S
+	;
 
 MODEL
-    :    'MODEL'
-    ;
+	:	M O D E L
+	;
 
 IGNORE
-    :    'IGNORE'
-    ;
+	:	I G N O R E
+	;
 
 KEEP
-    :    'KEEP'
-    ;
+	:	K E E P
+	;
 
 NAW
-    :    'NAW'
-    ;
+	:	N A W
+	;
 
 DIMENSION
-    :    'DIMENSION'
-    ;
+	:	D I M E N S I O N
+	;
 
 SINGLE
-    :    'SINGLE'
-    ;
+	:	S I N G L E
+	;
 
 REFERENCE
-    :    'REFERENCE'
-    ;
+	:	R E F E R E N C E
+	;
 
 RETURN
-    :    'RETURN'
-    ;
+	:	R E T U R N
+	;
 
 UPDATED
-    :    'UPDATED'
-    ;
+	:	U P D A T E D
+	;
 
 ROWS
-    :    'ROWS'
-    ;
+	:	R O W S
+	;
 
 MAIN
-    :    'MAIN'
-    ;
+	:	M A I N
+	;
 
 MEASURES
-    :    'MEASURES'
-    ;
+	:	M E A S U R E S
+	;
 
 RULES
-    :    'RULES'
-    ;
+	:	R U L E S
+	;
 
 UPDATE
-    :    'UPDATE'
-    ;
+	:	U P D A T E
+	;
 
 UPSERT
-    :    'UPSERT'
-    ;
+	:	U P S E R T
+	;
 
 AUTOMATIC
-    :    'AUTOMATIC'
-    ;
+	:	A U T O M A T I C
+	;
 
 SECUENTIAL
-    :    'SECUENTIAL'
-    ;
+	:	S E C U E N T I A L
+	;
 
 ORDER
-    :    'ORDER'
-    ;
+	:	O R D E R
+	;
 
 ITERATE
-    :    'ITERATE'
-    ;
+	:	I T E R A T E
+	;
 
 UNTIL
-    :    'UNTIL'
-    ;
+	:	U N T I L
+	;
 
 LSB
-    :    '['
-    ;
+	:	'['
+	;
 
 RSB
-    :    ']'
-    ;
+	:	']'
+	;
 
 FOR
-    :    'FOR'
-    ;
+	:	F O R 
+    	;
 
 IN
-    :    'IN'
-    ;
+	:	I N
+	;
 
 LIKE
-    :    'LIKE'
-    ;
+	:	L I K E
+	;
 
 TO
-    :    'TO'
-    ;
+	:	T O
+	;
 
 INCREMENT
-    :    'INCREMENT'
-    ;
+	:	I N C R E M E N T
+	;
 
 DECREMENT
-    :    'DECREMENT'
-    ;
+	:	D E C R E M E N T
+	;
 
 SIBLINGS
-    :    'SIBLINGS'
-    ;
+	:	S I B L I N G S
+	;
 
 ASC
-    :    'ASC'
-    ;
+	:	A S C
+	;
 
 DESC
-    :    'DESC'
-    ;
+	:	D E S C
+	;
 
 NULLS
-    :    'NULLS'
-    ;
+	:	N U L L S
+	;
 
 FIRST
-    :    'FIRST'
-    ;
+	:	F I R S T
+	;
 
 LAST
-    :    'LAST'
-    ;
+	:	L A S T
+	;
 
 NOWAIT
-    :    'NOWAIT'
-    ;
+	:	N O W A I T
+	;
 
 WAIT
-    :    'WAIT'
-    ;
+	:	W A I T
+	;
 
 ANY
-    :    'ANY'
-    ;
+	:	A N Y
+	;
 
 SOME
-    :    'SOME'
-    ;
+	:	S O M E
+	;
 
 IS
-    :    'IS'
-    ;
+	:	I S
+	;
 
 NOT
-    :    'NOT'
-    ;
+	:	N O T
+	;
 
 NAN
-    :    'NAN'
-    ;
+	:	N A N
+	;
 
 INFINITE
-    :    'INFINITE'
-    ;
+	:	I N F I N I T E
+	;
 
 PRESENT
-    :    'PRESENT'
-    ;
+	:	P R E S E N T
+	;
 
 A_SIGN
-    :    'A'
-    ;
+	:	'A'
+	;
 
 SET
-    :    'SET'
-    ;
+	:	S E T
+	;
 
 EMPTY
-    :    'EMPTY'
-    ;
+	:	E M P T Y
+	;
 
 MEMBER
-    :    'MEMBER'
-    ;
+	:	M E M B E R
+	;
 
 SUBMULTISET
-    :    'SUBMULTISET'
-    ;
+	:	S U B M U L T I S E T
+	;
 
 LIKEC
-    :    'LIKEC'
-    ;
+	:	L I K E C
+	;
 
 LIKE2
-    :    'LIKE2'
-    ;
+	:	L I K E '2'
+	;
 
 LIKE4
-    :    'LIKE4'
-    ;
+	:	L I K E '4'
+	;
 
 ESCAPE
-    :    'ESCAPE'
-    ;
+	:	E S C A P E
+	;
 
 REGEXP_LIKE
-    :    'REGEXP_LIKE'
-    ;
+	:	R E G E X P '_' L I K E
+	;
 
 NULL
-    :    'NULL'
-    ;
+	:	N U L L
+	;
 
 OR
-    :    'OR'
-    ;
+	:	O R
+	;
 
 EXISTS
-    :    'EXISTS'
-    ;
+	:	E X I S T S
+	;
 
 TYPE
-    :    'TYPE'
-    ;
+	:	T Y P E
+	;
 
 ASTERISK
-    :    '*'
-    ;
+	:	'*'
+	;
 
 ROWID
-    :    'ROWID'
-    ;
+	:	R O W I D
+	;
 
 ROWNUM
-    :    'ROWNUM'
-    ;
+	:	R O W N U M
+	;
 
 CURRVAL
-    :    'CURRVAL'
-    ;
+	:	C U R R V A L
+	;
 
 NEXTVAL
-    :    'NEXTVAL'
-    ;
+	:	N E X T V A L
+	;
 
 PRIOR
-    :    'PRIOR'
-    ;
+	:	P R I O R
+	;
 
 CASE
-    :    'CASE'
-    ;
+	:	C A S E
+	;
 
 END
-    :    'END'
-    ;
+	:	E N D
+	;
 
 WHEN
-    :    'WHEN'
-    ;
+	:	W H E N
+	;
 
 THEN
-    :    'THEN'
-    ;
+	:	T H E N
+	;
 
 ELSE
-    :    'ELSE'
-    ;
+	:	E L S E
+	;
 
 CURSOR
-    :    'CURSOR'
-    ;
+	:	C U R S O R
+	;
 
 AT
-    :    'AT'
-    ;
+    	:	A T
+	;
 
 LOCAL
-    :    'LOCAL'
-    ;
+	:	L O C A L
+	;
 
 DBTIMEZONE
-    :    'DBTIMEZONE'
-    ;
+	:	D B T I M E Z O N E
+	;
 
 DAY
-    :    'DAY'
-    ;
+	:	D A Y
+	;
 
 YEAR
-    :    'YEAR'
-    ;
+	:	Y E A R
+	;
 
 SECOND
-    :    'SECOND'
-    ;
+	:	S E C O N D
+	;
 
 MONTH
-    :    'MONTH'
-    ;
+	:	M O N T H
+	;
 
 INDICATOR
-    :    'INDICATOR'
-    ;
+	:	I N D I C A T O R
+	;
 
 PLUS
-    :    '+'
-    ;
-
+	:	'+'
+	;
 
 
 SEMICOLON
-    :    ';'
-    ;
+	:	';'
+	;
 
-COLON
-    :    '\:'
-    ;
+COLON	
+	:	'\:'
+	;
 
 DOUBLEVERTBAR
-    :    '||'
-    ;
+	:	'||'
+	;
 
 DIVIDE
-    :    '/'
-    ;
+	:	'/'
+	;
 
-
-QUOTE
-    :    '\''
-    ;
 
 fragment    
-N_
-    : '0' .. '9' ( '0' .. '9' )*
-    ;
+UINT_NUMBER
+	:	'0' .. '9' ( '0' .. '9' )*
+	;
     
     
 NUMBER
 	:	(
-			( N_ DOT ) => N_ DOT N_?
-	        	|DOT N_
-		        |N_
+			( UINT_NUMBER DOT ) => UINT_NUMBER DOT UINT_NUMBER?
+	        	|	DOT UINT_NUMBER
+		        |	UINT_NUMBER
 		)
-		( 'E' ( PLUS | MINUS )? N_ )?
+		( 'E' ( PLUS | MINUS )? UINT_NUMBER )?
+	;
+
+STRING
+	:	'\'' IDENT_CHAR* '\''
 	;
 
 fragment
 IDENT_CHAR
-    :'A' .. 'Z'
-    |'a'..'z'
-    ;
+	:	'A' .. 'Z'
+	|	'a'..'z'
+	;
+
             
 IDENT
-    :    IDENT_CHAR ( IDENT_CHAR | N | '_' | '$' | '#' )*
-//    |    '"' IDENT '"'    
-    ;    
+	:	IDENT_CHAR ( IDENT_CHAR | UINT_NUMBER | '_' | '$' | '#' )*
+//	|	(DOUBLE_QUOTE)=> DOUBLE_QUOTE ANY_CHAR+ DOUBLE_QUOTE    
+	;    
 
 
