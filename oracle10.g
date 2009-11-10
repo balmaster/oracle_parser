@@ -177,49 +177,49 @@ query_partition_clause1
     ;    
     
 outer_join_type
-    :    ( FULL | LEFT | RIGHT ) OUTER?
-    ;
+	:	( FULL | LEFT | RIGHT ) OUTER?
+	;
 
 where_clause
-    :    WHERE condition
-    ;
+	:	WHERE condition
+	;
     
 hierarchical_query_clause
-    :    ( START WITH condition )? CONNECT BY NOCYCLE? condition
-    ;
+	:	( START WITH condition )? CONNECT BY NOCYCLE? condition
+	;
     
 group_by_clause
-    :    GROUP BY group_by_clause1(COMMA group_by_clause1)*
-    ;
+	:	GROUP BY group_by_clause1(COMMA group_by_clause1)*
+	;
          
 fragment
 group_by_clause1            
-    :    expr
-    |    rollup_cube_clause
-    |    grouping_sets_clause
-    ;
+	:	expr
+	|	rollup_cube_clause
+	|	grouping_sets_clause
+	;
     
 rollup_cube_clause
-    :    ( ROLLUP | CUBE ) LB grouping_expression_list RB    
-    ;
+	:	( ROLLUP | CUBE ) LB grouping_expression_list RB    
+	;
     
 grouping_sets_clause
-    :    GROUPING SETS LB grouping_sets_clause1 (COMMA grouping_sets_clause)* RB    
-    ;
+	:	GROUPING SETS LB grouping_sets_clause1 (COMMA grouping_sets_clause)* RB    
+	;
     
 fragment    
 grouping_sets_clause1
-    :     rollup_cube_clause
-    |    grouping_expression_list
-    ;
+	:	rollup_cube_clause
+	|	grouping_expression_list
+	;
     
 grouping_expression_list
-    :    expression_list(COMMA expression_list)*
-    ;
+	:	expression_list(COMMA expression_list)*
+	;
     
 expression_list
-    :    expr
-    ;
+	:    expr
+	;
     
 /*    
 model_clause
@@ -232,8 +232,8 @@ cell_reference_options
     ;
     
 return_rows_clause
-    :    RETURN ( UPDATED|ALL) ROWS
-    ;
+	:	RETURN ( UPDATED|ALL) ROWS
+	;
     
     /*
 reference_model
@@ -243,8 +243,8 @@ reference_model
 
 fragment
 reference_model_name
-    :    IDENT
-    ;    
+	:	IDENT
+	;    
 
 /*    
 main_model
@@ -254,8 +254,8 @@ main_model
     
 fragment    
 main_model_name
-    :    IDENT
-    ;    
+	:	IDENT
+	;    
     
 model_column_clauses
     :    (query_partition_clause c_alias?)? DIMENSION BY LB model_column(COMMA model_column)*RB
@@ -324,24 +324,20 @@ literal
     ;        
                             
 order_by_clause
-    :    ORDER SIBLINGS? BY order_by_clause1(COMMA order_by_clause1)*
-    ;
+	:	ORDER SIBLINGS? BY order_by_clause1(COMMA order_by_clause1)*
+	;
     
 fragment    
 order_by_clause1
-    :    (expr) ( ASC| DESC)? (( NULLS FIRST)|(NULLS LAST))?    
-    ;
+	:	(expr) ( ASC| DESC)? (( NULLS FIRST)|(NULLS LAST))?    
+	;
     
     
 for_update_clause
-    :    FOR UPDATE (OF for_update_clause1(COMMA)for_update_clause1)? ( NOWAIT|( WAIT integer))?    
-    ;
+	:	FOR UPDATE (OF obj_path_expression? column (COMMA) obj_path_expression? column)? ( NOWAIT|( WAIT integer))?    
+	;
     
-fragment    
-for_update_clause1
-    :    ((schema DOT)?(IDENT)DOT)? column
-    ;
-    
+  
 condition
 	:	(b1 OR) => b1 OR condition
 	|	b1
