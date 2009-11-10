@@ -1257,10 +1257,15 @@ IDENT_CHAR
 	|	'a'..'z'
 	;
 
+fragment
+NON_QUOTE_CHAR
+	:	~('\''|'"'|'?'|IDENT_CHAR)
+	;
             
 IDENT
 	:	IDENT_CHAR ( IDENT_CHAR | UINT_NUMBER | '_' | '$' | '#' )*
-//	|	(DOUBLE_QUOTE)=> DOUBLE_QUOTE ANY_CHAR+ DOUBLE_QUOTE    
+	|	('"')=> '"' (NON_QUOTE_CHAR|IDENT_CHAR)+ '"'    
 	;    
 
+	
 
